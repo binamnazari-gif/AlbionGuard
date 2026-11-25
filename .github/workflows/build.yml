@@ -1,9 +1,12 @@
-name: Build AlbionGuard EU APK
+name: Build & Release AlbionGuard EU
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -26,27 +29,31 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Generate Release Keystore
+      - name: Read Version Name
+        id: ver
         run: |
-          keytool -genkeypair -v \
-            -keystore ${{ github.workspace }}/albionguard-release.jks \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias albionguard \
-            -storepass albionguard123 \
-            -keypass albionguard123 \
-            -dname "CN=AlbionGuardEU, OU=Gaming, O=AlbionGuard, L=Tehran, S=Tehran, C=IR"
+          V=$(grep -oP 'versionName\s*=\s*"\K[^"]+' src/app/build.gradle.kts)
+          echo "version=$V" >> "$GITHUB_OUTPUT"
 
-      - name: Build Release APK
+      - name: Build Signed Release APK
         working-directory: src
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/albionguard-release.jks
-          KEYSTORE_PASSWORD: albionguard123
-          KEY_ALIAS: albionguard
-          KEY_PASSWORD: albionguard123
         run: gradle assembleRelease --stacktrace
+
+      - name: Rename APK
+        run: cp src/app/build/outputs/apk/release/app-release.apk AlbionGuard-EU-v${{ steps.ver.outputs.version }}.apk
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AlbionGuard-EU-APK
-          path: src/app/build/outputs/apk/release/app-release.apk
+          name: AlbionGuard-EU-v${{ steps.ver.outputs.version }}
+          path: AlbionGuard-EU-v${{ steps.ver.outputs.version }}.apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          gh release delete "$TAG" --yes || true
+          gh release create "$TAG" "AlbionGuard-EU-v${{ steps.ver.outputs.version }}.apk" \
+            --title "AlbionGuard EU $TAG" \
+            --notes "بهبود تشخیص زنده شبکه و سیم‌کارت فعال، تعویض خودکار DNS پشتیبان، انتخاب سریع ۳ DNS برتر و آپدیت داخلی."
