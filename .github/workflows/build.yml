@@ -18,6 +18,12 @@ jobs:
       - name: Unpack Project ZIP
         run: unzip -o AlbionGuard-EU-Android.zip -d src
 
+      - name: Download Xray Core (libv2ray.aar)
+        run: |
+          mkdir -p src/app/libs
+          curl -fL -o src/app/libs/libv2ray.aar \
+            https://github.com/2dust/AndroidLibXrayLite/releases/download/v26.11.9/libv2ray.aar
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -60,4 +66,4 @@ jobs:
           gh release delete "$TAG" --yes || true
           gh release create "$TAG" "AlbionGuard-v${{ steps.ver.outputs.version }}.apk" \
             --title "Albion Guard $TAG" \
-            --notes "موتور صوتی نیتیو LiveKit (فقط صدا داخل کارت اصلی)، لیست زنده اعضا، میوت و سکوت اتاق واقعی و پایداری در پس‌زمینه."
+            --notes "موتور نیتیو Xray گیمینگ (VLESS/SS/Trojan)، تست موازی و سوئیچ خودکار ۵ سرور برتر آلمان فقط برای آلبیون."
